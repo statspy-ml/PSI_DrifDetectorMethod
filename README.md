@@ -1,5 +1,5 @@
 
-## VERSION INFORMATION
+# VERSION INFORMATION
 
 PSI_DRIFT.java is deprecated
 
@@ -9,7 +9,7 @@ PSI_DRIFT_B.java -> Sliding Windows
 
 
 
-## POPULATION STABILITY INDEX DETECTOR METHOD
+# POPULATION STABILITY INDEX DETECTOR METHOD
 
 *m_n* : counts number of instances
 
@@ -24,7 +24,9 @@ PSI_DRIFT_B.java -> Sliding Windows
 *outcontrolLevel* : sets the threshold to trigger drift detection.  Defaults to 20%.
 
 
-## HOW THE PSI DRIFT DETECTOR METHOD WORKS
+# HOW THE PSI DRIFT DETECTOR METHOD WORKS
+
+## i.Sliding Window
 
 1. Two LinkedLists, `firstWindow` and `secondWindow`, are used to store the instances of the current and previous distributions.
 
