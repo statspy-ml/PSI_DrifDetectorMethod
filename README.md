@@ -38,7 +38,3 @@
 5. The `updateDetectionStatus(double psi)` method updates the detection status based on the calculated PSI value. It sets the `estimation` field to the PSI value, determines if a change or warning is detected based on the warning and outcontrol levels, and updates the corresponding fields (`isChangeDetected`, `isWarningZone`, and `delay`).
 
 
-
-10. The `prepareForUseImpl(TaskMonitor monitor, ObjectRepository repository)` method is empty and does not require any implementation for this drift detection algorithm.
-
-By using this updated code, you should be able to run the PSI drift detection algorithm in MOA with the desired logic and parameters.
