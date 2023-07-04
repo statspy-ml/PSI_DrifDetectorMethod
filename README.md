@@ -1,3 +1,14 @@
+
+## VERSION INFORMATION
+
+PSI_DRIFT.java is deprecated
+
+PSI_DRIFT_A.java -> Landmark Windows
+
+PSI_DRIFT_B.java -> Sliding Windows
+
+
+
 ## POPULATION STABILITY INDEX DETECTOR METHOD
 
 *m_n* : counts number of instances
