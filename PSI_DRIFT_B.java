@@ -5,11 +5,9 @@ import com.github.javacliparser.FloatOption;
 import moa.core.ObjectRepository;
 import moa.tasks.TaskMonitor;
 
-import java.util.Collections;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-public class PSI_DRIFT extends AbstractChangeDetector {
+public class PSI_DRIFT_B extends AbstractChangeDetector {
 
     private static final long serialVersionUID = -3518369648142099719L;
 
@@ -18,23 +16,23 @@ public class PSI_DRIFT extends AbstractChangeDetector {
             'n',
             "The number of instances to wait before beginning detection.",
             100, 0, Integer.MAX_VALUE);
-            
+
     public IntOption binsOption = new IntOption(
             "bins",
             'b',
             "Number of bins for PSI computation.",
             10, 1, Integer.MAX_VALUE);
-            
+
     public IntOption instancesPerDistributionOption = new IntOption(
             "instancesPerDistribution",
             'i',
             "Number of instances per distribution for comparison.",
             100, 1, Integer.MAX_VALUE);
-    
+
     public FloatOption warningLevelOption = new FloatOption(
             "warningLevel", 'w', "Warning Level.",
             0.10, 0.0, 1.0);
-        
+
     public FloatOption outcontrolLevelOption = new FloatOption(
             "outcontrolLevel", 'o', "Outcontrol Level.",
             0.20, 0.0, 1.0);
@@ -43,11 +41,13 @@ public class PSI_DRIFT extends AbstractChangeDetector {
     private int minNumInstances;
     private int numBins;
     private int instancesPerDistribution;
-    private List<Double> window;
     private double warningLevel;
     private double outcontrolLevel;
 
-    public PSI_DRIFT() {
+    private LinkedList<Double> firstWindow;
+    private LinkedList<Double> secondWindow;
+
+    public PSI_DRIFT_B() {
         resetLearning();
     }
 
@@ -59,28 +59,40 @@ public class PSI_DRIFT extends AbstractChangeDetector {
         instancesPerDistribution = this.instancesPerDistributionOption.getValue();
         warningLevel = this.warningLevelOption.getValue();
         outcontrolLevel = this.outcontrolLevelOption.getValue();
-        window = new ArrayList<>();
+        firstWindow = new LinkedList<>();
+        secondWindow = new LinkedList<>();
     }
 
     @Override
     public void input(double prediction) {
-        if(m_n++ < minNumInstances) {
+        m_n++;
+
+        if (m_n <= instancesPerDistribution) {
+            firstWindow.add(prediction);
             return;
         }
 
-        window.add(prediction);
+        secondWindow.add(prediction);
 
-        if (window.size() < 2 * instancesPerDistribution) {
+        if (secondWindow.size() < instancesPerDistribution) {
             return;
         }
 
-        // Calcula PSI
-        List<Double> expected = window.subList(0, instancesPerDistribution);
-        List<Double> actual = window.subList(window.size() - instancesPerDistribution, window.size());
+        double psi = computePSI(firstWindow, secondWindow, numBins);
 
-        double psi = computePSI(expected, actual, numBins);
+        updateDetectionStatus(psi);
 
-        // Warning e drift 
+        if (firstWindow.size() > 0) {
+            firstWindow.remove(0);
+        }
+
+        if (secondWindow.size() > 0) {
+            firstWindow.add(secondWindow.get(0));
+            secondWindow.remove(0);
+        }
+    }
+
+    private void updateDetectionStatus(double psi) {
         this.estimation = psi;
         this.isChangeDetected = false;
         this.isWarningZone = false;
@@ -90,53 +102,58 @@ public class PSI_DRIFT extends AbstractChangeDetector {
         } else if (psi > warningLevel) {
             this.isWarningZone = true;
         }
-
-        // Remove instance mais antiga da janela deslizante
-        window.remove(0);
     }
 
     private double computePSI(List<Double> expected, List<Double> actual, int numBins) {
         double minValue = Collections.min(expected);
         double maxValue = Collections.max(expected);
         double binWidth = (maxValue - minValue) / numBins;
-        
+
         double[] expectedDist = new double[numBins];
         double[] actualDist = new double[numBins];
-        for (double val : expected) {
-            int binIndex = Math.min((int) ((val - minValue) / binWidth), numBins - 1);
-            expectedDist[binIndex]++;
+        for (Double value : expected) {
+            int binIndex = Math.min((int) ((value - minValue) / binWidth), numBins - 1);
+            expectedDist[binIndex] += 1;
         }
-        for (double val : actual) {
-            int binIndex = Math.min((int) ((val - minValue) / binWidth), numBins - 1);
-            actualDist[binIndex]++;
+        for (Double value : actual) {
+            int binIndex = Math.min((int) ((value - minValue) / binWidth), numBins - 1);
+            actualDist[binIndex] += 1;
         }
-        
-        // Normalizando as distribuições
+
+        double psi = 0.0;
         for (int i = 0; i < numBins; i++) {
             expectedDist[i] /= expected.size();
             actualDist[i] /= actual.size();
-        }
-        
-        // Cálculo PSI
-        double psi = 0;
-        for (int i = 0; i < numBins; i++) {
-            if (expectedDist[i] != 0) {
-                double actualRate = actualDist[i] == 0 ? 0.001 : actualDist[i];  // Avoid division by zero
-                psi += (expectedDist[i] - actualRate) * Math.log(expectedDist[i] / actualRate);
+            if (expectedDist[i] > 0.0 && actualDist[i] > 0.0) {
+                psi += (expectedDist[i] - actualDist[i]) * Math.log(expectedDist[i] / actualDist[i]);
             }
         }
-        
+
         return psi;
     }
-
+    
     @Override
     public void getDescription(StringBuilder sb, int indent) {
-        // TODO Auto-generated method stub
+        // Append the description of the drift detection algorithm to the StringBuilder
+       
+        StringBuilder newLineIndent = new StringBuilder();
+        for (int i = 0; i < indent; i++) {
+            newLineIndent.append("\n");
+        }
+        sb.append(newLineIndent).append("PSI_DRIFT_B: Detects concept drift based on the PSI measure.");
+        sb.append(newLineIndent).append("Parameters:");
+        sb.append(newLineIndent).append("- minNumInstances: The number of instances to wait before beginning detection.");
+        sb.append(newLineIndent).append("- bins: Number of bins for PSI computation.");
+        sb.append(newLineIndent).append("- instancesPerDistribution: Number of instances per distribution for comparison.");
+        sb.append(newLineIndent).append("- warningLevel: Warning level for drift detection.");
+        sb.append(newLineIndent).append("- outcontrolLevel: Outcontrol level for drift detection.");
     }
 
+    
     @Override
-    protected void prepareForUseImpl(TaskMonitor monitor, ObjectRepository repository) {
-        // TODO Auto-generated method stub
+    protected void prepareForUseImpl(TaskMonitor monitor,
+                                      ObjectRepository repository) {
     }
 }
+
 
