@@ -1,3 +1,5 @@
+// Landmark Approach for drift detecntion with PSI based detector
+
 package moa.classifiers.core.driftdetection;
 
 import com.github.javacliparser.IntOption;
@@ -138,7 +140,7 @@ public class PSI_DRIFT_A extends AbstractChangeDetector {
         for (int i = 0; i < indent; i++) {
             newLineIndent.append("\n");
         }
-        sb.append(newLineIndent).append("PSI_DRIFT_B: Detects concept drift based on the PSI measure.");
+        sb.append(newLineIndent).append("PSI_DRIFT_A: Detects concept drift based on the PSI measure.");
         sb.append(newLineIndent).append("Parameters:");
         sb.append(newLineIndent).append("- minNumInstances: The number of instances to wait before beginning detection.");
         sb.append(newLineIndent).append("- bins: Number of bins for PSI computation.");
